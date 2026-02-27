@@ -1,0 +1,72 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  TF_BACKEND_BUCKET: "123456789012-test-deployments"
+  TF_BACKEND_KEY: "dev/test-huge/terraform.tfstate"
+  AWS_REGION: "us-east-1"
+  TF_VAR_environment: "dev"
+  TF_VAR_service: "test-huge"
+  TF_VAR_aws_region: "us-east-1"
+  AWS_ACCOUNT_ID: "123456789012"
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: make validate
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: validate
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      INFRASTRUCTURE_PROVENANCE_TOKEN: ${{ secrets.INFRASTRUCTURE_PROVENANCE_TOKEN }}
+      INFRASTRUCTURE_PROVENANCE_PATH: ${{ github.workspace }}/infrastructure-provenance
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout infrastructure-provenance (harness)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/infrastructure-provenance
+          path: infrastructure-provenance
+          token: ${{ secrets.INFRASTRUCTURE_PROVENANCE_TOKEN }}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Configure git for private module (tfmodules-test)
+        run: |
+          if [ -n "$INFRASTRUCTURE_PROVENANCE_TOKEN" ]; then
+            git config --global url."https://oauth2:${INFRASTRUCTURE_PROVENANCE_TOKEN}@github.com/".insteadOf "https://github.com/"
+          fi
+      - name: Copy scripts from infrastructure-provenance
+        run: |
+          mkdir -p scripts
+          cp -r infrastructure-provenance/scripts/test-harness/* scripts/
+          cp -r infrastructure-provenance/repo_editor scripts/
+      - name: Install dependencies for mock script
+        run: |
+          pip install python-hcl2 boto3 PyGithub PyYAML sqlalchemy psycopg2-binary
+      - name: Wire mock apply
+        run: |
+          echo "REAL_TERRAFORM=$(which terraform)" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/scripts" >> $GITHUB_PATH
+      - name: Terraform Init
+        env:
+          PYTHONPATH: ${{ env.INFRASTRUCTURE_PROVENANCE_PATH }}
+        run: make init
+      - name: Terraform Plan
+        env:
+          PYTHONPATH: ${{ env.INFRASTRUCTURE_PROVENANCE_PATH }}
+        run: make plan
+      - name: Terraform Apply (mock)
+        env:
+          PYTHONPATH: ${{ env.INFRASTRUCTURE_PROVENANCE_PATH }}
+        run: make apply

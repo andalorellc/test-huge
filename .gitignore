@@ -1,0 +1,12 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Scripts (imported from infrastructure-provenance during CI/CD)
+scripts/
+
+# OS
+.DS_Store
+Thumbs.db
