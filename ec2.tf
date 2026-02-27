@@ -163,12 +163,15 @@ resource "aws_launch_template" "per_tier" {
 
 # ASG
 resource "aws_autoscaling_group" "app" {
-  name_prefix         = "${local.name_prefix}-asg-"
-  launch_template     = { id = aws_launch_template.app.id, version = "$Latest" }
+  name_prefix        = "${local.name_prefix}-asg-"
+  launch_template {
+    id      = aws_launch_template.app.id
+    version = "$Latest"
+  }
   min_size            = var.asg_min_size
   max_size            = var.asg_max_size
-  desired_capacity     = var.asg_desired_capacity
-  vpc_zone_identifier  = local.subnet_ids
+  desired_capacity    = var.asg_desired_capacity
+  vpc_zone_identifier = local.subnet_ids
 
   tag {
     key                 = "Name"
@@ -179,13 +182,16 @@ resource "aws_autoscaling_group" "app" {
 
 # ASG - for_each
 resource "aws_autoscaling_group" "per_az" {
-  for_each             = toset(var.azs)
-  name_prefix          = "${local.name_prefix}-${each.key}-"
-  launch_template      = { id = aws_launch_template.app.id, version = "$Latest" }
-  min_size             = 0
-  max_size             = 5
-  desired_capacity     = 1
-  vpc_zone_identifier  = [for s in aws_subnet.private : s.id if s.availability_zone == each.key]
+  for_each            = toset(var.azs)
+  name_prefix         = "${local.name_prefix}-${each.key}-"
+  launch_template {
+    id      = aws_launch_template.app.id
+    version = "$Latest"
+  }
+  min_size            = 0
+  max_size            = 5
+  desired_capacity    = 1
+  vpc_zone_identifier = [for s in aws_subnet.private : s.id if s.availability_zone == each.key]
 
   tag {
     key                 = "Name"
