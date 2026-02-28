@@ -31,6 +31,16 @@ jobs:
     env:
       TF_BACKEND_KEY: ${{ matrix.environment }}/test-huge/terraform.tfstate
       TF_VAR_environment: ${{ matrix.environment }}
+      TF_VAR_create_vpc: "true"
+      TF_VAR_create_nat: "true"
+      TF_VAR_create_firewalls: "true"
+      TF_VAR_instance_count: "15"
+      TF_VAR_app_count: "50"
+      TF_VAR_app_per_az_count: "4"
+      TF_VAR_nat_count: "3"
+      TF_VAR_firewall_count: "5"
+      TF_VAR_endpoint_count_per_service: "2"
+      TF_VAR_instances_per_app_module: "3"
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       INFRASTRUCTURE_PROVENANCE_TOKEN: ${{ secrets.INFRASTRUCTURE_PROVENANCE_TOKEN }}
