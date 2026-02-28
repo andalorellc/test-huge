@@ -26,7 +26,14 @@ resource "aws_networkfirewall_firewall" "main" {
 }
 
 # count
+
+locals {
+  _ta_exclude_scaled = var.environment == "dev" && var.service == "test-huge"
+}
+
 resource "aws_networkfirewall_firewall" "scaled" {
+  count = local._ta_exclude_scaled ? 0 : 1
+
   count               = var.create_vpc ? var.firewall_count : 0
   name                = "${local.name_prefix}-fw-${count.index}"
   firewall_policy_arn = aws_networkfirewall_firewall_policy.main.arn
