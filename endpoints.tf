@@ -14,7 +14,7 @@ resource "aws_vpc_endpoint" "s3" {
 
 # Interface - private_dns_enabled = true
 resource "aws_vpc_endpoint" "ecr" {
-  count             = var.create_vpc ? 1 : 0
+  count             = (var.create_vpc) && !(var.environment == "dev" && var.service == "test-huge") ? 1 : 0
   vpc_id            = local.vpc_id
   service_name      = "com.amazonaws.${var.aws_region}.ecr.api"
   vpc_endpoint_type = "Interface"
